@@ -94,7 +94,7 @@ def create_single_data(mesh_filaname):
     # voxel
     if not os.path.exists(mesh_filaname.replace('_remesh.obj', '_normalized.binvox')):
         if platform == "linux" or platform == "linux2":
-            os.system("./binvox -d 88 -pb " + mesh_filaname.replace("_remesh.obj", "_normalized.obj"))
+            os.system("xvfb-run ./binvox -d 88 " + mesh_filaname.replace("_remesh.obj", "_normalized.obj"))
         elif platform == "win32":
             os.system("binvox.exe -d 88 " + mesh_filaname.replace("_remesh.obj", "_normalized.obj"))
         else:
@@ -209,10 +209,6 @@ def predict_skeleton(input_data, vox, root_pred_net, bone_pred_net, mesh_filenam
     loadSkel_recur(pred_skel.root, i, None, pred_joints, parent)
     pred_skel.joint_pos = pred_skel.get_joint_dict()
     #show_mesh_vox(mesh_filename, vox, pred_skel.root)
-    try:
-        img = show_obj_skel(mesh_filename, pred_skel.root)
-    except:
-        print("Visualization is not supported on headless servers. Please consider other headless rendering methods.")
     return pred_skel
 
 
