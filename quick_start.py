@@ -412,23 +412,7 @@ if __name__ == '__main__':
     # To process other input characters, please first try the learned bandwidth (0.0429 in the provided model), and the default threshold 1e-5.
     # We also use these two default parameters for processing all test models in batch.
 
-    #model_id, bandwidth, threshold = "smith", None, 1e-5
-    model_id, bandwidth, threshold = "17872", 0.045, 0.75e-5
-    #model_id, bandwidth, threshold = "8210", 0.05, 1e-5
-    #model_id, bandwidth, threshold = "8330", 0.05, 0.8e-5
-    #model_id, bandwidth, threshold = "9477", 0.043, 2.5e-5
-    #model_id, bandwidth, threshold = "17364", 0.058, 0.3e-5
-    #model_id, bandwidth, threshold = "15930", 0.055, 0.4e-5
-    #model_id, bandwidth, threshold = "8333", 0.04, 2e-5
-    #model_id, bandwidth, threshold = "8338", 0.052, 0.9e-5
-    #model_id, bandwidth, threshold = "3318", 0.03, 0.92e-5
-    #model_id, bandwidth, threshold = "15446", 0.032, 0.58e-5
-    #model_id, bandwidth, threshold = "1347", 0.062, 3e-5
-    #model_id, bandwidth, threshold = "11814", 0.06, 0.6e-5
-    #model_id, bandwidth, threshold = "2982", 0.045, 0.3e-5
-    #model_id, bandwidth, threshold = "2586", 0.05, 0.6e-5
-    #model_id, bandwidth, threshold = "8184", 0.05, 0.4e-5
-    #model_id, bandwidth, threshold = "9000", 0.035, 0.16e-5
+    model_id, bandwidth, threshold = "result", 0.045, 0.75e-5
 
     # create data used for inferece
     print("creating data for model ID {:s}".format(model_id))
