@@ -42,53 +42,71 @@ def loadInfo(info_name, geo_name):
             pos = joint_pos[node]
             bone = armature.edit_bones.new(node)
             bone.head.x, bone.head.y, bone.head.z = pos[0], pos[1], pos[2]
-            
-            if bone.name not in current_mesh.vertex_groups:
-                current_mesh.vertex_groups.new(name=bone.name)
-            
-            
+
+            #if bone.name not in current_mesh.vertex_groups:
+            #    current_mesh.vertex_groups.new(name=bone.name)
+
+
+            has_parent = None
             is_child = False
             is_parent = node in joint_hier.keys()
-            
+
+            for parent, children in joint_hier.items():
+                if node in children:
+                    is_child = True
+                    has_parent = parent
+                    bone.parent = armature.edit_bones[parent]
+                    if bone.parent.tail == bone.head:
+                        bone.use_connect = True
+                    # offset = bone.head - bone.parent.head
+                    # bone.tail = bone.head + offset / 2
+                    break
+
             if is_parent:
                 x_distance = [abs(joint_pos[c][0] - pos[0]) for c in joint_hier[node]]
-                
+
                 print(x_distance)
                 nearest_child_idx = x_distance.index(min(x_distance))
                 nearest_child_pos = joint_pos[joint_hier[node][nearest_child_idx]]
-                
+
                 bone.tail.x, bone.tail.y, bone.tail.z = nearest_child_pos[0], nearest_child_pos[1], nearest_child_pos[2]
-                
+
+            elif bone.parent:
+                offset = bone.head - bone.parent.head
+                bone.tail = bone.head + offset / 2
+            elif not is_child:
+                # This node not is neither a parent nor a child
+                bone.tail.x, bone.tail.y, bone.tail.z = pos[0], pos[1], pos[2]
+                bone.tail.y += 0.1
+
+            if is_parent:
                 for c_node in joint_hier[node]:
                     next_level.append(c_node)
-            else:
-                for parent, children in joint_hier.items():
-                    if node in children:
-                        is_child = True
-                        bone.parent = armature.edit_bones[parent]
-                        offset = bone.head - bone.parent.head
-                        bone.tail = bone.head + offset / 2
-                        break
-                
-                if not is_child:
-                    # This node not is neither a parent nor a child
-                    bone.tail.x, bone.tail.y, bone.tail.z = pos[0], pos[1], pos[2]
-                    bone.tail.y += 0.1
-                    
-        this_level = next_level         
-        
+
+        this_level = next_level
+
     print(joint_skin)
     bpy.ops.object.mode_set(mode='POSE')
-    for v_skin in joint_skin:
-        v_idx = int(v_skin.pop(0))
-        
-        for i in range(0, len(v_skin), 2):
-            current_mesh.vertex_groups[v_skin[i]].add([v_idx], float(v_skin[i + 1]), 'REPLACE')
+    #for v_skin in joint_skin:
+    #    v_idx = int(v_skin.pop(0))
+    #    
+    #    for i in range(0, len(v_skin), 2):
+    #        current_mesh.vertex_groups[v_skin[i]].add([v_idx], float(v_skin[i + 1]), 'REPLACE')
 
     rigged_model.matrix_world = current_mesh.matrix_world
     rigged_model.location.xyz = 0
     mod = current_mesh.modifiers.new('rignet', 'ARMATURE')
     mod.object = rigged_model
+    bpy.ops.object.editmode_toggle()
+    bpy.context.view_layer.objects.active = current_mesh
+    rigged_model.select_set(False)
+    bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+    bpy.ops.object.editmode_toggle()
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.remove_doubles()
+    bpy.ops.object.editmode_toggle()
+    rigged_model.select_set(True)
+    bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 
         
     #cmds.joint(root_name, e=True, oj='xyz', sao='yup', ch=True, zso=True)
@@ -124,7 +142,7 @@ def getMeshOrigin():
 
 
 if __name__ == '__main__':
-    model_id = "smith"
+    model_id = "1347"
     print(model_id)
     obj_name = 'quick_start/{:s}_ori.obj'.format(model_id)
     info_name = 'quick_start/{:s}_ori_rig.txt'.format(model_id)
