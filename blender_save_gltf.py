@@ -1,4 +1,5 @@
 import bpy
+import argparse
 
 def loadInfo(info_name, geo_name):
     armature = bpy.data.armatures.new("armature")
@@ -99,13 +100,13 @@ def loadInfo(info_name, geo_name):
     mod.object = rigged_model
     bpy.ops.object.editmode_toggle()
     bpy.context.view_layer.objects.active = current_mesh
-    rigged_model.select_set(False)
+    #rigged_model.select_set(False)
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     bpy.ops.object.editmode_toggle()
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.mesh.remove_doubles()
     bpy.ops.object.editmode_toggle()
-    rigged_model.select_set(True)
+    bpy.context.view_layer.objects.active = rigged_model
     bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 
         
@@ -140,28 +141,33 @@ def getMeshOrigin():
     #     geo_list = cmds.ls(type='surfaceShape')
     return bpy.context.selected_objects[0]
 
+def get_args():
+  parser = argparse.ArgumentParser()
+ 
+  # get all script args
+  _, all_arguments = parser.parse_known_args()
+  double_dash_index = all_arguments.index('--')
+  script_args = all_arguments[double_dash_index + 1: ]
+ 
+  # add parser rules
+  parser.add_argument('-i', '--model', help="OBJ file")
+  parser.add_argument('-r', '--rig_file', help="rig text-file")
+  parser.add_argument('-o', '--output', help="save GLTF")
+  parsed_script_args, _ = parser.parse_known_args(script_args)
+  return parsed_script_args
+
 
 if __name__ == '__main__':
-    model_id = "1347"
+    model_id = "smith"
     print(model_id)
     obj_name = 'quick_start/{:s}_ori.obj'.format(model_id)
     info_name = 'quick_start/{:s}_ori_rig.txt'.format(model_id)
     out_name = 'quick_start/{:s}.gltf'.format(model_id)
 
-    # parser = argparse.ArgumentParser(
-    #                     prog = 'ProgramName',
-    #                     description = 'What the program does',
-    #                     epilog = 'Text at the bottom of help')
-    # parser.add_argument('obj_name')
-    # parser.add_argument('info_name')
-    # parser.add_argument('-o', '--output')
-    # args = parser.parse_args()
-    #
-    # print(args)
+    args = get_args()
 
-       
     # import obj
-    bpy.ops.import_scene.obj(filepath=obj_name)
+    bpy.ops.import_scene.obj(filepath=args.model)
     # cmds.file(new=True,force=True)
     # cmds.file(obj_name, o=True)
 
@@ -171,7 +177,7 @@ if __name__ == '__main__':
     #mesh.rotation_euler = (0, 0, 0)
 
     # import info
-    root_name, _ = loadInfo(info_name, getMeshOrigin())
+    root_name, _ = loadInfo(args.rig_file, getMeshOrigin())
     
     # export fbx
-    bpy.ops.export_scene.gltf(filepath=out_name)
+    bpy.ops.export_scene.gltf(filepath=args.output)
