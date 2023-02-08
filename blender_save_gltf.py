@@ -3,6 +3,21 @@ import argparse
 import mathutils
 from math import radians
 
+# blender -P blender_save_gltf.py -- -i quick_start/result_ori.obj -r quick_start /result_ori_rig.txt -o quick_start/result.glb
+
+
+def adjustBones(joint_hier, joint_pos):
+    new_pos = {}
+    new_hier = {}
+
+    for joint_name in joint_pos.keys():
+        pos = joint_name[joint_pos]
+
+        # if pos[0] < 0:
+        new_pos['LeftArm0'] = pos
+
+    new_pos, new_hier
+
 
 def loadInfo(info_name, geo_name):
     armature = bpy.data.armatures.new("armature")
@@ -36,6 +51,8 @@ def loadInfo(info_name, geo_name):
     f_info.close()
 
     print(joint_hier)
+
+    joint_hier, joint_pos = adjustBones(joint_hier, joint_pos)
 
     current_mesh = bpy.context.selected_objects[0]
 
@@ -94,11 +111,6 @@ def loadInfo(info_name, geo_name):
 
     print(joint_skin)
     bpy.ops.object.mode_set(mode='POSE')
-    # for v_skin in joint_skin:
-    #    v_idx = int(v_skin.pop(0))
-    #
-    #    for i in range(0, len(v_skin), 2):
-    #        current_mesh.vertex_groups[v_skin[i]].add([v_idx], float(v_skin[i + 1]), 'REPLACE')
 
     # rigged_model.matrix_world = current_mesh.matrix_world
     # rigged_model.matrix_world.translation = mathutils.Vector()
@@ -129,16 +141,6 @@ def loadInfo(info_name, geo_name):
         bone.tail = bone.head - mathutils.Vector((0, bone.length, 0))
         bone.roll = 0
 
-    # for bone_name, bone in armature.data.edit_bones.items():
-    #     old_head = bone.head.copy()
-    #     R = mathutils.Matrix.Rotation(radians(90), 4, bone.x_axis.normalized())
-    #     bone.transform(R)
-    #     offset_vec = -(bone.head - old_head)
-    #     bone.head += offset_vec
-    #     bone.tail += offset_vec
-
-    # armature.world_matrix.translation
-
     return root_name, joint_pos
 
 
@@ -146,16 +148,6 @@ def getMeshOrigin():
     bpy.ops.object.select_by_type(type='MESH')
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
 
-    # for geo in geometries:
-    #     if 'ShapeOrig' in geo:
-    #         '''
-    #         we can also use cmds.ls(geo, l=True)[0].split("|")[0]
-    #         to get the upper level node name, but stick on this way for now
-    #         '''
-    #         geo_name = geo.replace('ShapeOrig', '')
-    #         geo_list.append(geo_name)
-    # if not geo_list:
-    #     geo_list = cmds.ls(type='surfaceShape')
     return bpy.context.selected_objects[0]
 
 
@@ -176,23 +168,14 @@ def get_args():
 
 
 if __name__ == '__main__':
-    model_id = "smith"
-    print(model_id)
-    obj_name = 'quick_start/{:s}_ori.obj'.format(model_id)
-    info_name = 'quick_start/{:s}_ori_rig.txt'.format(model_id)
-    out_name = 'quick_start/{:s}.gltf'.format(model_id)
-
     bpy.ops.object.delete({"selected_objects": [bpy.data.objects['Cube']]})
 
     args = get_args()
 
     # import obj
     bpy.ops.import_scene.obj(filepath=args.model)
-    # cmds.file(new=True,force=True)
-    # cmds.file(obj_name, o=True)
 
     mesh = getMeshOrigin()
-    print(mesh.matrix_world)
     mesh.rotation_euler = (mathutils.Euler((0, 0, 0)))
     mesh.location.xyz = 0
 
