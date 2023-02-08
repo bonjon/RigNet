@@ -102,7 +102,7 @@ def loadInfo(info_name, geo_name):
 
     # rigged_model.matrix_world = current_mesh.matrix_world
     # rigged_model.matrix_world.translation = mathutils.Vector()
-    rigged_model.location.xyz = 0
+    # rigged_model.location.xyz = 0
     # rigged_model.rotation_euler.x = radians(90)
     mod = current_mesh.modifiers.new('rignet', 'ARMATURE')
     mod.object = rigged_model
@@ -126,7 +126,7 @@ def loadInfo(info_name, geo_name):
     # reset bones rotation
     for bone_name, bone in armature.data.edit_bones.items():
         bone.roll = 0
-        bone.tail = bone.head + mathutils.Vector((0, bone.length, 0))
+        bone.tail = bone.head - mathutils.Vector((0, bone.length, 0))
         bone.roll = 0
 
     # for bone_name, bone in armature.data.edit_bones.items():
