@@ -100,9 +100,9 @@ def loadInfo(info_name, geo_name):
     #    for i in range(0, len(v_skin), 2):
     #        current_mesh.vertex_groups[v_skin[i]].add([v_idx], float(v_skin[i + 1]), 'REPLACE')
 
-    rigged_model.matrix_world = current_mesh.matrix_world
+    # rigged_model.matrix_world = current_mesh.matrix_world
     # rigged_model.matrix_world.translation = mathutils.Vector()
-    # rigged_model.location.xyz = 0
+    rigged_model.location.xyz = 0
     # rigged_model.rotation_euler.x = radians(90)
     mod = current_mesh.modifiers.new('rignet', 'ARMATURE')
     mod.object = rigged_model
@@ -129,13 +129,13 @@ def loadInfo(info_name, geo_name):
         bone.tail = bone.head + mathutils.Vector((0, bone.length, 0))
         bone.roll = 0
 
-    for bone_name, bone in armature.data.edit_bones.items():
-        old_head = bone.head.copy()
-        R = mathutils.Matrix.Rotation(radians(90), 4, bone.x_axis.normalized())
-        bone.transform(R)
-        offset_vec = -(bone.head - old_head)
-        bone.head += offset_vec
-        bone.tail += offset_vec
+    # for bone_name, bone in armature.data.edit_bones.items():
+    #     old_head = bone.head.copy()
+    #     R = mathutils.Matrix.Rotation(radians(90), 4, bone.x_axis.normalized())
+    #     bone.transform(R)
+    #     offset_vec = -(bone.head - old_head)
+    #     bone.head += offset_vec
+    #     bone.tail += offset_vec
 
     # armature.world_matrix.translation
 
@@ -193,8 +193,8 @@ if __name__ == '__main__':
 
     mesh = getMeshOrigin()
     print(mesh.matrix_world)
-    # mesh.rotation_euler.rotate(mathutils.Euler((radians(-90), 0, 0)))
-    # mesh.location.xyz = 0
+    mesh.rotation_euler = (mathutils.Euler((0, 0, 0)))
+    mesh.location.xyz = 0
 
     # import info
     root_name, _ = loadInfo(args.rig_file, mesh)
