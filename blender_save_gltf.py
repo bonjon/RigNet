@@ -3,20 +3,107 @@ import argparse
 import mathutils
 from math import radians
 
-# blender -P blender_save_gltf.py -- -i quick_start/result_ori.obj -r quick_start /result_ori_rig.txt -o quick_start/result.glb
+# blender -P blender_save_gltf.py -- -i quick_start/result_ori.obj -r quick_start/result_ori_rig.txt -o quick_start/result.glb
 
 
 def adjustBones(joint_hier, joint_pos):
-    new_pos = {}
-    new_hier = {}
+    new_pos = joint_pos.copy()
+    new_hier = joint_hier.copy()
+    limbs_roots = {}
+    labeled_leaves = {}
 
-    for joint_name in joint_pos.keys():
-        pos = joint_name[joint_pos]
+    leaves = [n for n in joint_pos.keys() if n not in joint_hier]
+    print(f'Leaves: {leaves}\npos: \t{[joint_pos[l] for l in leaves]}')
 
-        # if pos[0] < 0:
-        new_pos['LeftArm0'] = pos
+    highest_x, highest_y = (0, 0)
+    lowest_x, lowest_y, second_lowest_y = (0, 0, 0)
 
-    new_pos, new_hier
+    labeled_leaves["right_arm_0"] = []
+    labeled_leaves["left_arm_0"] = []
+    labeled_leaves["head_0"] = []
+    labeled_leaves["right_leg_0"] = []
+    labeled_leaves["left_leg_0"] = []
+
+    for leaf in leaves:
+        pos = joint_pos[leaf]
+
+        if pos[0] > highest_x:
+            labeled_leaves["left_arm_0"] = leaf
+            highest_x = pos[0]
+        if pos[0] < lowest_x:
+            labeled_leaves["right_arm_0"] = leaf
+            lowest_x = pos[0]
+        if pos[1] > highest_y:
+            labeled_leaves["head_0"] = (leaf)
+            highest_y = pos[1]
+        if pos[1] < lowest_y and pos[0] > 0:
+            labeled_leaves["left_leg_0"] = (leaf)
+            lowest_y = pos[1]
+        if pos[1] < second_lowest_y and pos[0] < 0:
+            labeled_leaves["right_leg_0"] = (leaf)
+            second_lowest_y = pos[1]
+
+    inverted_labeled_leaves = {}
+
+    for k, v in labeled_leaves.items():
+        inverted_labeled_leaves[v] = k
+
+    labeled_leaves = inverted_labeled_leaves
+
+    print(f'Leaves: {labeled_leaves}')
+
+    # here we find the limb "root" (the beginning of the limb)
+    for parent, children in joint_hier.items():
+        limb_root_candidate = children[0]
+        candidate_parent = parent
+        print(f'Inspecting {parent} -> {children}...')
+        if len(children) == 1 and children[0] in labeled_leaves:
+            while len(joint_hier[candidate_parent]) < 2:
+                print(
+                    f'\t{candidate_parent} -> {joint_hier[candidate_parent]}')
+                for parent_it, children_it in joint_hier.items():
+                    if candidate_parent in children_it:
+                        print(f'Candidate parent: {candidate_parent}')
+                        limb_root_candidate = candidate_parent
+                        candidate_parent = parent_it
+            limbs_roots[limb_root_candidate] = labeled_leaves[children[0]]
+
+    # restructure the hierarchy
+    print(f'Limb roots:\n \t {limbs_roots}')
+    print(f'Limb children:\n\t {[joint_hier[r] for r in limbs_roots]}')
+    for limb_root in limbs_roots:
+        print(f'Limb root: {limb_root}')
+        counter = 0
+        pos = joint_pos[limb_root]
+        old_name = limb_root
+        new_name = limbs_roots[limb_root]
+
+        while old_name in joint_hier:
+            new_name = new_name[:-1]+str(counter)
+            # il while controlla anche se è l'ultimo parent della catena
+            new_pos[new_name] = joint_pos[old_name]
+            new_pos.pop(old_name)
+            print(f'{old_name} -> {new_name}: {joint_hier[old_name]}')
+            if joint_hier[old_name][0] in joint_hier:
+                new_hier[new_name] = [new_name[:-1]+(str(counter+1))]
+            else:
+                leaf_pos = joint_pos[joint_hier[old_name][0]]
+                new_pos[new_name[:-1]+(str(counter+1))] = leaf_pos
+                new_pos.pop(joint_hier[old_name][0])
+
+                new_hier[new_name[:-1] +
+                         str(counter)] = [new_name[:-1]+(str(counter+1))]
+
+            counter += 1
+            new_hier.pop(old_name)
+            old_name = joint_hier[old_name][0]
+
+        for parent, children in new_hier.items():
+            if limb_root in children:
+                children[children.index(limb_root)] = limbs_roots[limb_root]
+
+    print(f'Resulted in:\n\t{new_pos}\n\t{new_hier}')
+    return new_hier, new_pos
 
 
 def loadInfo(info_name, geo_name):
@@ -63,6 +150,7 @@ def loadInfo(info_name, geo_name):
             print(f'Looking at {node}')
             pos = joint_pos[node]
             bone = armature.edit_bones.new(node)
+            print(pos)
             bone.head.x, bone.head.y, bone.head.z = pos[0], pos[1], pos[2]
 
             # if bone.name not in current_mesh.vertex_groups:
