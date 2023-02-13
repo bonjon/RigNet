@@ -2,8 +2,108 @@ import bpy
 import argparse
 import mathutils
 from math import radians
+import re
 
 # blender -P blender_save_gltf.py -- -i quick_start/result_ori.obj -r quick_start/result_ori_rig.txt -o quick_start/result.glb
+
+
+def removeDuplicateBones(joint_hier, joint_pos):
+    new_hier = joint_hier.copy()
+    new_pos = joint_pos.copy()
+
+    default_duplicated = {}
+    for pos in joint_pos:
+        match: re.Match = re.search(r"joint_(\d+)_dup_(\d+)", pos)
+        if match is not None:
+            id = match.groups()[0]
+            dup = match.groups()[1]
+            joint = f'joint_{id}'
+
+            if joint not in default_duplicated:
+                default_duplicated[joint] = set()
+
+            default_duplicated[joint].add(
+                f'joint_{id}_dup_{dup}')
+
+        match: re.Match = re.search(r"root_dup_(\d+)", pos)
+        if match is not None:
+            dup = match.groups()[0]
+
+            if 'root' not in default_duplicated:
+                default_duplicated['root'] = set()
+
+            default_duplicated['root'].add(
+                f'root_dup_{dup}')
+
+    for parent, duplicated_joints in default_duplicated.items():
+        # root, [root_dup_0, root_dup_1, root_dup_2]
+        for child in duplicated_joints:
+            print(f"{parent} -> {child}")
+            if child in new_hier:
+                new_hier[parent].remove(child)
+                new_hier[parent] += new_hier[child]
+                new_hier.pop(child)
+                new_pos.pop(child)
+
+    # print("AFTER REMOVING DUPs", new_hier)
+
+    # positions = [(j, pos) for j, pos in new_pos.items()]
+    # positions = sorted(positions, key=lambda x: x[1])
+    #
+    # duplicated_joints = {}
+    #
+    # print("DUPLICATED JOINTS:", duplicated_joints)
+
+    # print("OLD HIERARCHY", joint_hier)
+    #
+    # def fix_duplicated_roots(parent, joint):
+    #     ending_childs = set()
+    #     print(f"Watching {parent} -> {joint}")
+    #     if joint in duplicated_joints:
+    #         for child in duplicated_joints[joint]:
+    #             ending_childs |= fix_duplicated_roots(joint, child)
+    #             duplicated_joints.pop(joint)
+    #     else:
+    #         ending_childs.add(joint)
+    #
+    #     return ending_childs
+    #
+    # for parent, children in duplicated_joints.copy().items():
+    #     print(f"FIXING DUPLICATES FOR {parent} ({children}):")
+    #     res = set()
+    #     for child in children:
+    #         res |= fix_duplicated_roots(parent, child)
+    #
+    #     print(f"\t {parent}: {res}")
+    #     if parent in duplicated_joints:
+    #         duplicated_joints[parent] = res
+    #
+    # print("FINAL DUPLICATE SET", duplicated_joints)
+    #
+    # for root, children in duplicated_joints.items():
+    #     for child in children:
+    #         if root not in new_hier:
+    #             new_hier[root] = []
+    #
+    #         if child in new_hier:
+    #             new_hier[root] += new_hier[child]
+    #             new_hier.pop(child)
+    #             new_pos.pop(child)
+    #
+    #         if child in new_hier[root]:
+    #             new_hier[root].remove(child)
+    #
+    #         for parent, other_childs in new_hier.items():
+    #             if child in other_childs:
+    #                 other_childs.remove(child)
+
+    for parent, children in new_hier.copy().items():
+        if len(children) == 0:
+            new_hier.pop(parent)
+
+    print("NEW HIERARCHY", new_hier)
+
+    return new_hier, new_pos
 
 
 def adjustBones(joint_hier, joint_pos):
@@ -34,13 +134,13 @@ def adjustBones(joint_hier, joint_pos):
             labeled_leaves["right_arm_0"] = leaf
             lowest_x = pos[0]
         if pos[1] > highest_y:
-            labeled_leaves["head_0"] = (leaf)
+            labeled_leaves["head_0"] = leaf
             highest_y = pos[1]
         if pos[1] < lowest_y and pos[0] > 0:
-            labeled_leaves["left_leg_0"] = (leaf)
+            labeled_leaves["left_leg_0"] = leaf
             lowest_y = pos[1]
         if pos[1] < second_lowest_y and pos[0] < 0:
-            labeled_leaves["right_leg_0"] = (leaf)
+            labeled_leaves["right_leg_0"] = leaf
             second_lowest_y = pos[1]
 
     inverted_labeled_leaves = {}
@@ -59,8 +159,8 @@ def adjustBones(joint_hier, joint_pos):
         print(f'Inspecting {parent} -> {children}...')
         if len(children) == 1 and children[0] in labeled_leaves:
             while len(joint_hier[candidate_parent]) < 2:
-                print(
-                    f'\t{candidate_parent} -> {joint_hier[candidate_parent]}')
+                # print(
+                #     f'\t{candidate_parent} -> {joint_hier[candidate_parent]}')
                 for parent_it, children_it in joint_hier.items():
                     if candidate_parent in children_it:
                         print(f'Candidate parent: {candidate_parent}')
@@ -139,6 +239,7 @@ def loadInfo(info_name, geo_name):
 
     print(joint_hier)
 
+    joint_hier, joint_pos = removeDuplicateBones(joint_hier, joint_pos)
     joint_hier, joint_pos = adjustBones(joint_hier, joint_pos)
 
     current_mesh = bpy.context.selected_objects[0]
@@ -197,7 +298,6 @@ def loadInfo(info_name, geo_name):
 
         this_level = next_level
 
-    print(joint_skin)
     bpy.ops.object.mode_set(mode='POSE')
 
     # rigged_model.matrix_world = current_mesh.matrix_world
@@ -219,7 +319,6 @@ def loadInfo(info_name, geo_name):
 
     # disconnect bones
     armature = bpy.context.active_object
-    print(armature.data.edit_bones)
     for bone_name, bone in armature.data.edit_bones.items():
         bone.use_connect = False
 
